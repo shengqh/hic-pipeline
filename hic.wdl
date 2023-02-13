@@ -656,6 +656,7 @@ task chimeric_sam_nonspecific {
             -f "$(which adjust_insert_size.awk)" \
             result.sam2 | \
             samtools sort -t cb -n --threads ~{num_cpus} > chimeric_sam_nonspecific.bam
+        rm result.sam result.sam2
     >>>
 
     output {
@@ -721,8 +722,8 @@ task dedup {
             -h \
             -@ ~{num_cpus - 1} \
             ~{bam} | \
-            awk -f "$(which dups_sam.awk)" > merged_dedup.sam
-        samtools view -b -@ ~{num_cpus - 1} merged_dedup.sam > merged_dedup.bam
+            awk -f "$(which dups_sam.awk)" | \
+        samtools view -b -@ ~{num_cpus - 1} - > merged_dedup.bam
     >>>
 
     output {
