@@ -514,6 +514,8 @@ task align {
     command {
         set -euo pipefail
         echo "Starting align"
+
+        echo "Extracting reference ..."
         mkdir reference
         cd reference && tar -xvf ${idx_tar}
         index_folder=$(ls)
@@ -532,11 +534,20 @@ task align {
         #count ligations
         # Need to unset the -e option, when ligation site is XXXX grep will exit with
         # non-zero status
-        set +e
-        source /opt/scripts/common/countligations.sh
-        set -e
+
+        if [[ "${ligation_site}" == "XXXX" ]]; then
+          echo "Counting ligations ignored."
+          echo "0" > result_norm.txt.res.txt
+        else
+          echo "Counting ligations ..."
+          echo "ligation_site = ${ligation_site}"
+          set +e
+          source /opt/scripts/common/countligations.sh
+          set -e
+        fi
+
         # Align reads
-        echo "Running bwa command"
+        echo "Running bwa command ..."
         bwa \
             mem \
             ~{if defined(fastq_pair.read_2) then "-SP5M" else "-5M"} \
@@ -545,9 +556,20 @@ task align {
             -K 320000000 \
             $reference_index_path \
             ${fastq_pair.read_1} \
-            ~{default="" fastq_pair.read_2} | \
-            samtools view -hbS - > aligned.bam
-        mv result_norm.txt.res.txt ligation_count.txt
+            ~{default="" fastq_pair.read_2} -o aligned.sam
+        
+        status=$?
+        if [[ $status -eq 0 ]]; then
+          echo "Converting sam to bam ..."
+          samtools view -hbS aligned.sam -o aligned.bam
+          mv result_norm.txt.res.txt ligation_count.txt
+        else
+          echo "BWA failed ..."
+          rm -f result_norm.txt.res.txt ligation_count.txt
+        fi
+        rm aligned.sam
+
+        exit $status
     }
 
     output {
