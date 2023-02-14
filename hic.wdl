@@ -556,18 +556,16 @@ task align {
             -K 320000000 \
             $reference_index_path \
             ${fastq_pair.read_1} \
-            ~{default="" fastq_pair.read_2} -o aligned.sam
+            ~{default="" fastq_pair.read_2} | samtools view -bS - > aligned.bam
         
         status=$?
         if [[ $status -eq 0 ]]; then
-          echo "Converting sam to bam ..."
-          samtools view -hbS aligned.sam -o aligned.bam
+          echo "bwa mem succeed ..."
           mv result_norm.txt.res.txt ligation_count.txt
         else
-          echo "BWA failed ..."
-          rm -f result_norm.txt.res.txt ligation_count.txt
+          echo "bwa mem failed ..."
+          rm -f result_norm.txt.res.txt ligation_count.txt aligned.bam
         fi
-        rm aligned.sam
 
         exit $status
     }
