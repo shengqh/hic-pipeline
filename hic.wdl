@@ -567,6 +567,8 @@ task align {
           rm -f result_norm.txt.res.txt ligation_count.txt aligned.bam
         fi
 
+        rm -rf reference
+
         exit $status
     }
 
@@ -601,10 +603,15 @@ task chimeric_sam_specific {
 
     command <<<
         set -euo pipefail
+        
         RESTRICTION_SITES_FILENAME=restriction_sites.txt
+        
         gzip -dc ~{restriction_sites} > $RESTRICTION_SITES_FILENAME
+        
         cp ~{ligation_count} result_norm.txt.res.txt
+        
         samtools view -h -@ ~{num_cpus - 1} ~{bam} > result.sam
+
         awk \
             -v stem=result_norm \
             -v site_file=$RESTRICTION_SITES_FILENAME \
@@ -612,6 +619,8 @@ task chimeric_sam_specific {
             -f "$(which chimeric_sam.awk)" \
             result.sam | \
             samtools sort -t cb -n --threads ~{num_cpus} > chimeric_sam_specific.bam
+
+        rm result.sam
     >>>
 
     output {
@@ -641,19 +650,24 @@ task chimeric_sam_nonspecific {
 
     command <<<
         set -euo pipefail
+
         cp ~{ligation_count} result_norm.txt.res.txt
+
         samtools view -h -@ ~{num_cpus - 1} ~{bam} > result.sam
+
         awk \
             -v stem=result_norm \
             ~{if(single_ended) then "-v singleend=1" else ""} \
             -f "$(which chimeric_sam.awk)" \
             result.sam > result.sam2
         ~{if(single_ended) then "samtools sort -t cb -n --threads " + num_cpus + " result.sam2 > chimeric_sam_nonspecific.bam && exit 0" else ""}
+
         awk \
             -v avgInsertFile=result_norm.txt.res.txt \
             -f "$(which adjust_insert_size.awk)" \
             result.sam2 | \
             samtools sort -t cb -n --threads ~{num_cpus} > chimeric_sam_nonspecific.bam
+
         rm result.sam result.sam2
     >>>
 
@@ -837,10 +851,11 @@ task calculate_stats {
                 ~{sep=" " alignment_stats} >> $STATS_FILENAME
         else
             DUPS=$(samtools view -c -f 1089 -F 256 ~{bam})
+            echo $DUPS > dups.txt
             awk \
                 -f "$(which stats_sub.awk)" \
                 -v dups=$DUPS \
-                -v ligation=$ligation \
+                -v ligation="~{ligation_site}" \
                 ~{sep=" " alignment_stats} >> $STATS_FILENAME
         fi
         java \
