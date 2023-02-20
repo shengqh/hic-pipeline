@@ -535,16 +535,11 @@ task align {
         # Need to unset the -e option, when ligation site is XXXX grep will exit with
         # non-zero status
 
-        if [[ "${ligation_site}" == "XXXX" ]]; then
-          echo "Counting ligations ignored."
-          echo "0" > result_norm.txt.res.txt
-        else
-          echo "Counting ligations ..."
-          echo "ligation_site = ${ligation_site}"
-          set +e
-          source /opt/scripts/common/countligations.sh
-          set -e
-        fi
+        echo "Counting ligations ..."
+        echo "ligation_site = ${ligation_site}"
+        set +e
+        source /opt/scripts/common/countligations.sh
+        set -e
 
         # Align reads
         echo "Running bwa command ..."
