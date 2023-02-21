@@ -135,6 +135,9 @@ workflow hic {
 
     scatter(i in range(length(fastq))) {
         Array[FastqPair] replicate = fastq[i]
+
+        Boolean has_replicate = length(replicate) > 1
+
         scatter(fastq_pair in replicate) {
             call align { input:
                 fastq_pair = fastq_pair,
@@ -172,21 +175,27 @@ workflow hic {
             }
         }
 
-        call merge { input:
-            bams = flatten(
-                select_all(
-                    [
-                        chimeric_sam_specific.output_bam,
-                        chimeric_sam_nonspecific.output_bam,
-                    ]
-                )
-            ),
-            output_bam_filename = "merged_" + i,
-            runtime_environment = runtime_environment,
+        if (has_replicate) {
+          call merge { input:
+              bams = flatten(
+                  select_all(
+                      [
+                          chimeric_sam_specific.output_bam,
+                          chimeric_sam_nonspecific.output_bam,
+                      ]
+                  )
+              ),
+              output_bam_filename = "merged_" + i,
+              runtime_environment = runtime_environment,
+          }
+        }
+
+        if (!has_replicate) {
+          File chimeric_bam = select_first(flatten(select_all([ chimeric_sam_specific.output_bam, chimeric_sam_nonspecific.output_bam ])))
         }
 
         call dedup { input:
-            bam = merge.bam,
+            bam = select_first([merge.bam, chimeric_bam]),
             ram_gb = dedup_ram_gb,
             disk_size_gb = dedup_disk_size_gb,
             runtime_environment = runtime_environment,
