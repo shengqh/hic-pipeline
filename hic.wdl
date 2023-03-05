@@ -80,7 +80,9 @@ workflow hic {
         String docker = "encodedcc/hic-pipeline:1.15.1"
         String singularity = "docker://encodedcc/hic-pipeline:1.15.1"
         String delta_docker = "encodedcc/hic-pipeline:1.15.1_delta"
+        String delta_singularity = "docker://encodedcc/hic-pipeline:1.15.1_delta"
         String hiccups_docker = "encodedcc/hic-pipeline:1.15.1_hiccups"
+        String hiccups_singularity = "docker://encodedcc/hic-pipeline:1.15.1_hiccups"
     }
 
     RuntimeEnvironment runtime_environment = {
@@ -90,12 +92,12 @@ workflow hic {
 
     RuntimeEnvironment hiccups_runtime_environment = {
       "docker": hiccups_docker,
-      "singularity": singularity
+      "singularity": hiccups_singularity
     }
 
     RuntimeEnvironment delta_runtime_environment = {
       "docker": delta_docker,
-      "singularity": singularity
+      "singularity": delta_singularity
     }
 
     Int align_ram_gb = if intact then align_ram_gb_intact else align_ram_gb_in_situ
